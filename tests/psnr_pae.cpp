@@ -281,7 +281,7 @@ void load_yuv(const char *filename, img_info& img)
 }
 
 void find_psnr_pae(const img_info& img1, const img_info& img2, 
-                   float &psnr, ui32 &pae)
+                   float mse[3], ui32 pae[3])
 {
   if (img1.num_comps != img2.num_comps || img1.format != img2.format ||
       img1.width != img2.width || img1.height != img2.height ||
@@ -290,15 +290,13 @@ void find_psnr_pae(const img_info& img1, const img_info& img2,
     printf("Error: mismatching images\n");
     exit(-1);
   }
-  size_t mse[3] = { 0 };
-  pae = 0;
-  size_t num_pixels = 0;
+  pae[0] = pae[1] = pae[2] = 0;
   for (ui32 c = 0; c < img1.num_comps; ++c)
   {
     size_t w, h;
     w = (img1.width + img1.downsampling[c].x - 1) / img1.downsampling[c].x;
     h = (img1.height + img1.downsampling[c].x - 1) / img1.downsampling[c].x;
-    num_pixels += w * h;
+    ui32 se = 0;    
     for (ui32 v = 0; v < h; ++v)
     {
       si32 *p0 = img1.comps[c] + w * v;
@@ -307,16 +305,17 @@ void find_psnr_pae(const img_info& img1, const img_info& img2,
       {
         si32 err = *p0++ - *p1++;
         ui32 ae = (ui32)(err > 0 ? err : -err);
-        mse[c] += ae * ae;
-        pae = ae > pae ? ae : pae;
+        se += ae * ae;
+        pae[c] = ae > pae[c] ? ae : pae[c];
       }
     }
+    mse[c] = (float)se / (float)(w * h);
   }
-  float t = 0;
-  for (ui32 c = 0; c < img1.num_comps; ++c)
-    t += (float)mse[c];
-  t /= (float)num_pixels;
-  psnr = 10.0f * log10f((float)img1.max_val * (float)img1.max_val / t);
+  // float t = 0;
+  // for (ui32 c = 0; c < img1.num_comps; ++c)
+  //   t += (float)mse[c];
+  // t /= (float)num_pixels;
+  // psnr = 10.0f * log10f((float)img1.max_val * (float)img1.max_val / t);
 }
 
 int main(int argc, char *argv[])
@@ -352,10 +351,11 @@ int main(int argc, char *argv[])
     exit(-1);  
   }
   
-  float psnr; ui32 pae;
-  find_psnr_pae(img1, img2, psnr, pae);
+  float mse[3]; ui32 pae[3];
+  find_psnr_pae(img1, img2, mse, pae);
   
-  printf("%f %d\n", psnr, pae);
+  for (ui32 c = 0; c < img1.num_comps; ++c)
+    printf("%f %d\n", mse[c], pae[c]);
   
   return 0;
 }

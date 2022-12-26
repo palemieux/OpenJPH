@@ -3,6 +3,9 @@
 export LD_LIBRARY_PATH=`pwd`/../:`\pwd`/../../bin
 export PATH=/bin:/usr/bin:`pwd`/../:`\pwd`/../../bin
 
+output_file="`pwd`/specs.txt"
+IFS=" " read -r var1 var2 var3 var4 var5 <<< $2
+
 # compress and decompress the images
 if [ "$1" = "-dec" -o "$1" = "-rdec"  ]; then
   if ! kdu_compress $2; then
@@ -27,13 +30,15 @@ if ! ojph_expand $4; then
   echo "===========>" ojph_expand error
   exit 1
 fi
-exit 0
+
 # test PSNR and maximum error
 out1=$(../psnr_pae $5 $6)
 if [ $? -ne 0 ]; then
   echo "===========>" psnr_pae error at location 1
   exit 1
 fi
+echo $var4 $var2 >> $output_file
+../psnr_pae $5 $6 >> $output_file
 out2=$(../psnr_pae $5 $7)
 if [ $? -ne 0 ]; then
   echo "===========>" psnr_pae error at location 2
