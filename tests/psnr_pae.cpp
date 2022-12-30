@@ -280,8 +280,8 @@ void load_yuv(const char *filename, img_info& img)
   delete[] buffer;
 }
 
-void find_psnr_pae(const img_info& img1, const img_info& img2, 
-                   float mse[3], ui32 pae[3])
+void find_mse_pae(const img_info& img1, const img_info& img2, 
+                  float mse[3], ui32 pae[3])
 {
   if (img1.num_comps != img2.num_comps || img1.format != img2.format ||
       img1.width != img2.width || img1.height != img2.height ||
@@ -290,13 +290,13 @@ void find_psnr_pae(const img_info& img1, const img_info& img2,
     printf("Error: mismatching images\n");
     exit(-1);
   }
-  pae[0] = pae[1] = pae[2] = 0;
   for (ui32 c = 0; c < img1.num_comps; ++c)
   {
     size_t w, h;
     w = (img1.width + img1.downsampling[c].x - 1) / img1.downsampling[c].x;
     h = (img1.height + img1.downsampling[c].x - 1) / img1.downsampling[c].x;
-    ui32 se = 0;    
+    double se = 0;
+    ui32 lpae = 0;
     for (ui32 v = 0; v < h; ++v)
     {
       si32 *p0 = img1.comps[c] + w * v;
@@ -305,11 +305,12 @@ void find_psnr_pae(const img_info& img1, const img_info& img2,
       {
         si32 err = *p0++ - *p1++;
         ui32 ae = (ui32)(err > 0 ? err : -err);
-        se += ae * ae;
-        pae[c] = ae > pae[c] ? ae : pae[c];
+        lpae = ae > lpae ? ae : lpae;
+        se += (double)err * (double)err;
       }
     }
     mse[c] = (float)se / (float)(w * h);
+    pae[c] = lpae;
   }
   // float t = 0;
   // for (ui32 c = 0; c < img1.num_comps; ++c)
@@ -352,7 +353,7 @@ int main(int argc, char *argv[])
   }
   
   float mse[3]; ui32 pae[3];
-  find_psnr_pae(img1, img2, mse, pae);
+  find_mse_pae(img1, img2, mse, pae);
   
   for (ui32 c = 0; c < img1.num_comps; ++c)
     printf("%f %d\n", mse[c], pae[c]);
