@@ -352,7 +352,7 @@ int main(int argc, char *argv[])
     exit(-1);  
   }
   
-  float mse[3]; ui32 pae[3];
+  float mse[3] = {0}; ui32 pae[3]={0};
   find_mse_pae(img1, img2, mse, pae);
   
   for (ui32 c = 0; c < img1.num_comps; ++c)
